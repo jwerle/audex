@@ -28,8 +28,8 @@ $(COMPONENTS):
 
 test: $(TESTS)
 
-test-and-serve: test)
-	$(SERVE) -p 8888 $(@)
+test-and-serve: test
+	$(SERVE) -p 8888 test
 
 .PHONY: $(TESTS)
 $(TESTS): build

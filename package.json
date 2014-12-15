@@ -1,0 +1,28 @@
+{
+  "name": "audex",
+  "version": "0.0.1",
+  "description": "Audio tools",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jwerle/audex.git"
+  },
+  "keywords": [
+    "audio",
+    "context",
+    "tools"
+  ],
+  "author": "Joseph Werle <joseph.werle@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jwerle/audex/issues"
+  },
+  "homepage": "https://github.com/jwerle/audex",
+  "dependencies": {
+    "component": "~1.0.1",
+    "serve": "~1.4.0"
+  }
+}

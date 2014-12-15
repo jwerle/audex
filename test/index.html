@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>Audex Tests</title>
+    <!-- we include just one stylesheet for mocha -->
+    <link rel="stylesheet" href="build/buffer.css" type="text/css" />
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <script type="text/javascript" src="build/context.js"></script>
+    <script type="text/javascript" src="build/buffer.js"></script>
+
+    <script type="text/javascript" charset="utf-8">
+      // init
+      require('mocha');
+      mocha.setup('bdd');
+      window.assert = require('assert')
+
+      // tests
+      require('audex/test/buffer.js');
+      require('audex/test/context.js');
+
+      // run
+      mocha.run();
+    </script>
+  </body>
+</html>

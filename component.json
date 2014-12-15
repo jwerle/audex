@@ -1,0 +1,31 @@
+{
+  "name": "audex",
+  "version": "0.0.1",
+  "description": "Audio tools",
+
+  "scripts": [
+    "src/index.js",
+    "src/buffer.js",
+    "src/context.js"
+  ],
+
+  "development": {
+    "scripts": [
+      "test/buffer.js",
+      "test/context.js"
+    ],
+
+    "dependencies": {
+      "mochajs/mocha": "*",
+      "component/assert": "*"
+    }
+  },
+
+  "dependencies": {
+    "component/emitter": "*",
+    "visionmedia/batch": "*",
+    "yields/canplaytype": "*",
+    "visionmedia/superagent": "*"
+  }
+
+}

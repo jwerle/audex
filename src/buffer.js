@@ -83,13 +83,12 @@ AudexBuffer.DEFAULT_MIMETYPE = 'audio/mpeg';
  *
  * @api public
  * @static
- * @param {Object} opts - optional
  * @param {Array} buffers
+ * @param {Object} opts - optional
  */
 
-AudexBuffer.concat = function (opts, buffers) {
+AudexBuffer.concat = function (buffers, opts) {
   if (1 == arguments.length) {
-    buffers = opts;
     opts = {};
   }
 
@@ -100,33 +99,32 @@ AudexBuffer.concat = function (opts, buffers) {
   var channels = opts.channels || 2;
   var channel = null;
   var offset = 0;
-  var audio = null;
-  var rate = 0;
-  var size = 0;
+  var audioBuffer = null;
+  var sampleRate = 0;
+  var totalBufferSize = 0;
   var curr = null;
   var ctx = null;
   var buf = null;
-  var len = buffers.length;
+  var bufLen = buffers.length;
   var i = 0;
   var j = 0;
 
-  size = buffers.reduce(function (a, b) {
-    return a + b.length;
+  totalBufferSize = buffers.reduce(function (total, currBuf) {
+    return total + currBuf.length;
   }, 0);
 
-
   ctx = getContext();
-  rate = ctx.sampleRate;
-  audio = ctx.createBuffer(channels, size, rate);
-  buf = new AudexBuffer(audio, ctx);
+  sampleRate = ctx.sampleRate;
+  audioBuffer = ctx.createBuffer(channels, totalBufferSize, sampleRate);
+  buf = new AudexBuffer(audioBuffer, ctx);
 
   for (;i < channels; ++i) {
     // `TypedArray' offset
     offset = 0;
 
-    for (j = 0; j < len; ++j) {
+    for (j = 0; j < bufLen; ++j) {
       // current channel in final audio buffer
-      channel = audio.getChannelData(i);
+      channel = audioBuffer.getChannelData(i);
 
       // current buffer
       curr = buffers[j];

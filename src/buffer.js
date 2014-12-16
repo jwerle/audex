@@ -37,7 +37,7 @@ function AudexBuffer (buffer, ctx, type) {
   } else if (1 == arguments.length) {
     ctx = getContext();
   } else if (0 == arguments.length) {
-    throw new Error("Expecting atleast 2 arguments.");
+    throw new Error("Expecting at least 2 arguments.");
   }
 
   if (!(buffer instanceof AudioBuffer)) {

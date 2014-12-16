@@ -80,7 +80,7 @@ describe("AudexBuffer(buffer, ctx, type)", function () {
     });
   });
 
-  describe("AudexBuffer.concat(opts, buffers)", function () {
+  describe("AudexBuffer.concat(buffers, opts)", function () {
     it("should concat `n' buffers into a single instance", function (done) {
       var batch = new Batch();
       var buffers = [];
@@ -112,7 +112,7 @@ describe("AudexBuffer(buffer, ctx, type)", function () {
         }, 0);
 
 
-        buf = AudexBuffer.concat({channels: 2}, buffers);
+        buf = AudexBuffer.concat(buffers, {channels: 2});
         assert(len == buf.length);
         assert(buf);
         done();

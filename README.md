@@ -1,7 +1,7 @@
 audex
 =====
 
-AudioContext tools
+Audio buffer tools
 
 ## install
 

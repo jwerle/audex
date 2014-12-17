@@ -6,6 +6,7 @@
   "scripts": [
     "src/index.js",
     "src/buffer.js",
+    "src/encode.js",
     "src/context.js"
   ],
 
@@ -25,7 +26,7 @@
     "component/emitter": "*",
     "visionmedia/batch": "*",
     "yields/canplaytype": "*",
+    "jwerle/libmp3lame-js": "*",
     "visionmedia/superagent": "*"
   }
-
 }

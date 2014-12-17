@@ -9,6 +9,7 @@ var Emitter = require('emitter')
   , Batch = require('batch')
   , AudioContext = require('./context')
   , agent = require('superagent')
+  , encode = require('./encode')
 
 function getContext () {
   return (AudioContext.context = AudioContext.context || new AudioContext());
@@ -48,7 +49,6 @@ function AudexBuffer (buffer, ctx, type) {
 
   this.type = 'string' == typeof type ? type : AudexBuffer.DEFAULT_MIMETYPE;
   this.buffer = buffer;
-  this.source = ctx.createBufferSource();
   this.context = ctx;
 
   Object.defineProperty(this, 'length', {
@@ -199,6 +199,13 @@ AudexBuffer.load = function (url, type, fn) {
   function onerror (err) {
     fn(err);
   }
+};
+
+AudexBuffer.prototype.createSource = function () {
+  var source = this.context.createBufferSource();
+  source.buffer = this.buffer;
+  return source;
+
 };
 
 AudexBuffer.prototype.slice = function () {

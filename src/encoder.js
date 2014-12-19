@@ -47,8 +47,11 @@ function Encoder (buffer) {
     mode: Encoder.MODE_JOINT_STEREO,
     time: {start: 0, end: 0},
     bitrate: 128,
-    channels: 1,
-    samplerate: {in: 0, out: 0},
+    channels: buffer.numberOfChannels,
+    samplerate: {
+      in: buffer.sampleRate,
+      out: buffer.sampleRate / buffer.numberOfChannels
+    },
   };
 
   this.opts.time.end = buffer.duration;
@@ -177,10 +180,10 @@ Encoder.prototype.splice = function (start, end) {
  * with a provided mime type
  *
  * @api public
- * @param {String} type
+ * @param {Function} fn
  */
 
-Encoder.prototype.encode = function (type, fn) {
+Encoder.prototype.encode = function (fn) {
   fn = ('function' == typeof fn ? fn : function () {});
 
   if ('string' != typeof type) {
@@ -264,20 +267,20 @@ Encoder.prototype.encode = function (type, fn) {
     r.set(spliced.map(function (a) { return a[1] }))
 
     // for each frame
-    len = 1152 * 2 * 2
-    for (i = 0; i <= len * end * 1000; i+=len) {
+    len = 1152 * 2 * 2 // @TODO - move to constant
+    for (i = 0; i <= len * end * 1000; i += len) {
       console.log("encoding frame=(%d)", i);
       j = i + len < l.length - 1 ? i + len : r.length - 1;
-      console.log(i, j)
       chunks.push(lame.encode_buffer_ieee_float(codec,
                                                 l.subarray(i, j),
                                                 r.subarray(i, j)));
     }
 
+    lame.encode_flush(codec);
     // output
     fn(null,
        new Blob(chunks.map(function (c) { return c.data }),
-                {type: type}));
+                {type: MP3_MIMETYPE}));
   });
 
 

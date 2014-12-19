@@ -26,11 +26,11 @@ describe("Encoder(buffer)", function () {
       .samplerate('in', buffer.sampleRate)
       .samplerate('out', buffer.sampleRate / buffer.numberOfChannels)
       .bitrate(128)
-      .splice(0, 10)
+      .splice(0, 4)
       .encode('audio/mp3', function (err, blob) {
         if (err) { console.error(err); }
         console.log(blob)
-        //window.open(URL.createObjectURL(blob));
+        window.open(URL.createObjectURL(blob));
       });
     });
   };

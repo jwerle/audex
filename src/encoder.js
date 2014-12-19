@@ -236,18 +236,42 @@ Encoder.prototype.encode = function (type, fn) {
     var j = 0;
     var k = 0;
 
-    console.log("start=(%d) end=(%d)", start, end);
+    console.log("start=(%d) end=(%d) stop=(%d) length=(%d)", start, end, stop, left.length);
 
-    //chunks.push(lame.encode_buffer_ieee_float(codec, left.subarray(i, stop), right.subarray(i, stop)));
-    //chunks.push(lame.encode_buffer_ieee_float(codec, left, right));
+    // for each chunk at rate
+    for (; i < stop; i += rate) {
+      // for each sample in chunk
+      for (j = 0; j < rate && j + i < len; ++j) {
+        mat = [];
+        // for each channel
+        for (k = 0; k < channels; ++k) {
+          // current chunk plus offset of j
+          mat.push(buffer.getChannelData(k)[i + j]);
+        }
 
-    for (;i < len * factor; i += len) {
+        spliced.push(mat);
+      }
+    }
+
+    var size = spliced.length;
+    var nsize = size + 4 - (size % 4);
+    var lbuf = new ArrayBuffer(nsize * 4);
+    var rbuf = new ArrayBuffer(nsize * 4);
+    var l = new Float32Array(lbuf);
+    var r = new Float32Array(rbuf);
+
+    l.set(spliced.map(function (a) { return a[0] }))
+    r.set(spliced.map(function (a) { return a[1] }))
+
+    // for each frame
+    len = 1152 * 2 * 2
+    for (i = 0; i <= len * end * 1000; i+=len) {
       console.log("encoding frame=(%d)", i);
-      j = i + len < left.length - 1 ? i + len : right.length - 1;
+      j = i + len < l.length - 1 ? i + len : r.length - 1;
       console.log(i, j)
       chunks.push(lame.encode_buffer_ieee_float(codec,
-                                                left.subarray(i, j),
-                                                right.subarray(i, j)));
+                                                l.subarray(i, j),
+                                                r.subarray(i, j)));
     }
 
     // output

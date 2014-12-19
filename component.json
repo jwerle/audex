@@ -6,14 +6,15 @@
   "scripts": [
     "src/index.js",
     "src/buffer.js",
-    "src/encode.js",
+    "src/encoder.js",
     "src/context.js"
   ],
 
   "development": {
     "scripts": [
       "test/buffer.js",
-      "test/context.js"
+      "test/context.js",
+      "test/encoder.js"
     ],
 
     "dependencies": {

@@ -24,37 +24,44 @@ function decibels (buffer) {
   return db;
 }
 
+var DEFAULT_SAMPLE_RATE = 44100;
+var DEFAULT_MIME_TYPE = 'audio/mp3';
+var DEFAULT_BIT_RATE = 128;
+var DEFAULT_DURATION = 30;
+
 /**
  * `Encoder' constructor
  *
  * @api public
- * @param {AudioBuffer} buffer
+ * @param {Array} buffers
+ * @param {Object} opts - optional
  */
 
 module.exports = Encoder;
-function Encoder (buffer) {
-  if (!(this instanceof Encoder)) {
-    return new Encoder(buffer);
+function Encoder (buffers, opts) {
+  if (false == Array.isArray(buffers)) {
+    throw new TypeError("Expecting an array of buffers");
+  } else if (!(this instanceof Encoder)) {
+    return new Encoder(buffers, opts);
   }
 
-  if (!(buffer instanceof AudioBuffer)) {
-    throw new TypeError("Expecting an instance of `AudioBuffer'");
-  }
+  opts = opts || {};
 
-  this.buffer = buffer;
+  this.buffers = buffers;
   this.codec = lame.init();
   this.opts = {
     mode: Encoder.MODE_JOINT_STEREO,
     time: {start: 0, end: 0},
-    bitrate: 128,
-    channels: buffer.numberOfChannels,
+    type: DEFAULT_MIME_TYPE,
+    bitrate: opts.bitrate || DEFAULT_BIT_RATE,
+    channels: buffers.length,
     samplerate: {
-      in: buffer.sampleRate,
-      out: buffer.sampleRate / buffer.numberOfChannels
+      in: opts.sampleRate || DEFAULT_SAMPLE_RATE,
+      out: (opts.sampleRate || DEFAULT_SAMPLE_RATE) / buffers.length
     },
   };
 
-  this.opts.time.end = buffer.duration;
+  this.opts.time.end = opts.duration || DEFAULT_DURATION;
 }
 
 /**
@@ -103,6 +110,23 @@ Encoder.prototype.channels = function (count) {
     return this.opts.channels;
   } else {
     this.opts.channels = count;
+  }
+
+  return this;
+};
+
+/**
+ * Sets or gets an encoder type count
+ *
+ * @api public
+ * @param {String} type- optional
+ */
+
+Encoder.prototype.type = function (type) {
+  if (null == type) {
+    return this.opts.type;
+  } else {
+    this.opts.type = type;
   }
 
   return this;
@@ -186,37 +210,33 @@ Encoder.prototype.splice = function (start, end) {
 Encoder.prototype.encode = function (fn) {
   fn = ('function' == typeof fn ? fn : function () {});
 
-  if ('string' != typeof type) {
-    fn(new TypeError("Expecting a mime type"));
-    return this;
-  }
-
   // init
   var channels = this.channels();
   var spliced = [];
   var samples = 0;
-  var factor = this.buffer.duration * 0.01;
+  var buffers = this.buffers;
+  var factor = this.opts.time.end * 0.01;
   var chunks = [];
-  var buffer = this.buffer;
   var codec = this.codec;
   var start = this.opts.time.start;
-  var left = buffer.getChannelData(0);
-  var right = this.opts.channels > 1 ? buffer.getChannelData(1) : left;
-  var rate = buffer.sampleRate;
-  var len = buffer.length;
+  var type = this.opts.type;
+  var left = buffers[0];
+  var right = this.opts.channels > 1 ? buffers[1] : left;
+  var rate = this.opts.samplerate.in;
+  var len = buffers[0].length;
   var end = this.opts.time.end;
 
-  samples = buffer.sampleRate * (end - start);
+  samples = rate * (end - start);
 
   console.log(
-    "samples=(%d) mode=%d, bitrate=%d, channels=%d, samplerate(in)=%d, samplerate(out)=%d",
+    "type=(%s) samples=(%d) mode=%d, bitrate=%d, channels=%d, samplerate(in)=%d, samplerate(out)=%d",
+    type,
     samples,
     this.mode(),
     this.bitrate(),
     this.channels(),
     this.samplerate('in'),
-    this.samplerate('out'),
-    buffer);
+    this.samplerate('out'))
 
   // init lame options
   lame.set_mode(codec, this.mode());
@@ -249,7 +269,7 @@ Encoder.prototype.encode = function (fn) {
         // for each channel
         for (k = 0; k < channels; ++k) {
           // current chunk plus offset of j
-          mat.push(buffer.getChannelData(k)[i + j]);
+          mat.push(buffers[k][i + j]);
         }
 
         spliced.push(mat);
@@ -269,8 +289,8 @@ Encoder.prototype.encode = function (fn) {
     // for each frame
     len = 1152 * 2 * 2 // @TODO - move to constant
     for (i = 0; i <= len * end * 1000; i += len) {
-      console.log("encoding frame=(%d)", i);
       j = i + len < l.length - 1 ? i + len : r.length - 1;
+      console.log("encoding offset=(%d) size=(%d)", i, j - i);
       chunks.push(lame.encode_buffer_ieee_float(codec,
                                                 l.subarray(i, j),
                                                 r.subarray(i, j)));
@@ -280,7 +300,7 @@ Encoder.prototype.encode = function (fn) {
     // output
     fn(null,
        new Blob(chunks.map(function (c) { return c.data }),
-                {type: MP3_MIMETYPE}));
+                {type: type}));
   });
 
 

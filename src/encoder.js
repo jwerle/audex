@@ -24,6 +24,7 @@ function decibels (buffer) {
   return db;
 }
 
+var SAMPLES_PER_FRAME = 1152;
 var DEFAULT_SAMPLE_RATE = 44100;
 var DEFAULT_MIME_TYPE = 'audio/mp3';
 var DEFAULT_BIT_RATE = 128;
@@ -215,28 +216,16 @@ Encoder.prototype.encode = function (fn) {
   var spliced = [];
   var samples = 0;
   var buffers = this.buffers;
-  var factor = this.opts.time.end * 0.01;
-  var chunks = [];
   var codec = this.codec;
   var start = this.opts.time.start;
   var type = this.opts.type;
-  var left = buffers[0];
-  var right = this.opts.channels > 1 ? buffers[1] : left;
-  var rate = this.opts.samplerate.in;
+  var rate = this.opts.samplerate.in * 1000; // in milliseconds
+  var stop = this.opts.time.end * rate;
   var len = buffers[0].length;
   var end = this.opts.time.end;
 
+  // samples to encode
   samples = rate * (end - start);
-
-  console.log(
-    "type=(%s) samples=(%d) mode=%d, bitrate=%d, channels=%d, samplerate(in)=%d, samplerate(out)=%d",
-    type,
-    samples,
-    this.mode(),
-    this.bitrate(),
-    this.channels(),
-    this.samplerate('in'),
-    this.samplerate('out'))
 
   // init lame options
   lame.set_mode(codec, this.mode());
@@ -250,59 +239,74 @@ Encoder.prototype.encode = function (fn) {
 
   // defer
   setTimeout(function () {
-    var data = null;
+    var chunks = [];
+    var chans = [];
     var parts = null;
-    var mat = null;
+    var right = null;
+    var left = null;
+    var blob = null;
+    var size = 0;
     var buf = null;
+    var max = 0;
     var i = start > 0 ? start * rate : 0;
-    var stop = end * rate;
     var j = 0;
     var k = 0;
 
-    console.log("start=(%d) end=(%d) stop=(%d) length=(%d)", start, end, stop, left.length);
-
-    // for each chunk at rate
+    // splice for each chunk incrementing at
+    // sample rate in milliseconds and stopping
+    // at splice stop in milliseconds
     for (; i < stop; i += rate) {
-      // for each sample in chunk
+      // for each sample in chunk within rate
+      // and current offset range (j + i) so
+      // sample index is less than buffer length
       for (j = 0; j < rate && j + i < len; ++j) {
-        mat = [];
-        // for each channel
+        chans = [];
+        // for each channel (k) read current
+        // sample data from channel buffer (i +j)
         for (k = 0; k < channels; ++k) {
-          // current chunk plus offset of j
-          mat.push(buffers[k][i + j]);
+          chans.push(buffers[k][i + j]);
         }
 
-        spliced.push(mat);
+        // store read channel data
+        spliced.push(chans);
       }
     }
 
-    var size = spliced.length;
-    var nsize = size + 4 - (size % 4);
-    var lbuf = new ArrayBuffer(nsize * 4);
-    var rbuf = new ArrayBuffer(nsize * 4);
-    var l = new Float32Array(lbuf);
-    var r = new Float32Array(rbuf);
+    // construct left/right channels
+    size = spliced.length + 4 - (spliced.length % 4);
+    left = new Float32Array(size);
+    right = new Float32Array(size);
 
-    l.set(spliced.map(function (a) { return a[0] }))
-    r.set(spliced.map(function (a) { return a[1] }))
+    left.set(spliced.map(function (a) { return a[0] }));
+    right.set(spliced.map(function (a) { return a[1] || a[0]; }));
 
-    // for each frame
-    len = 1152 * 2 * 2 // @TODO - move to constant
-    for (i = 0; i <= len * end * 1000; i += len) {
-      j = i + len < l.length - 1 ? i + len : r.length - 1;
-      console.log("encoding offset=(%d) size=(%d)", i, j - i);
-      chunks.push(lame.encode_buffer_ieee_float(codec,
-                                                l.subarray(i, j),
-                                                r.subarray(i, j)));
+    len = SAMPLES_PER_FRAME * (channels * channels);
+    max = len * (end / 100);
+
+    // for each frame sample ram
+    for (i = 0; i <= max; i += len) {
+      j = i + len < left.length - 1 ? i + len : right.length - 1;
+      chunks.push(
+        lame.encode_buffer_ieee_float(
+          codec,
+          left.subarray(i, j),
+          right.subarray(i, j)));
     }
 
-    lame.encode_flush(codec);
-    // output
-    fn(null,
-       new Blob(chunks.map(function (c) { return c.data }),
-                {type: type}));
-  });
+    // flush
+    chunks.push(lame.encode_flush(codec));
 
+    // map and filter chunks
+    chunks = (chunks
+              .filter(function (c) { return c.size; })
+              .map(function (c) { return c.data; }));
+
+    // output blob
+    blob = new Blob(chunks, {type: type});
+
+    /// callback
+    fn(null, blob);
+  });
 
   return this;
 };

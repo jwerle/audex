@@ -18,12 +18,18 @@ describe("Encoder(buffer)", function () {
   req.onload = function (e) {
     var res = e.target.response;
     ctx.decodeAudioData(res, function (buffer) {
-      encoder = new Encoder([buffer.getChannelData(0), buffer.getChannelData(1)]);
+      // left and right channels
+      var channels = [buffer.getChannelData(0), buffer.getChannelData(1)];
+
+      encoder = new Encoder(channels, {
+        sampleRate: buffer.sampleRate,
+        duration: buffer.duration
+      });
 
       (window.enc = encoder)
       .type('audio/mp3')
       .mode(Encoder.MODE_JOINT_STEREO)
-      .splice(0, 5)
+      .splice(0, 5000)
       .encode(function (err, blob) {
         if (err) { console.error(err); }
         console.log(blob)

@@ -26,14 +26,15 @@ $(NODE_MODULES):
 $(COMPONENTS):
 	$(C8) install --dev
 
-test: $(TESTS)
+.PHONY: test
+test:
+	$(C8) build --dev -o test/build -n test
 
 test-and-serve: test
 	$(SERVE) -p 8888 test
 
 .PHONY: $(TESTS)
-$(TESTS): build
-	$(C8) build --dev -o test/build -n $(shell basename $(@:.js=))
+$(TESTS): test
 
 clean:
 	$(RM) -rf $(BUILD)

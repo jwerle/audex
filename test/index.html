@@ -8,22 +8,7 @@
   </head>
   <body>
     <div id="mocha"></div>
-    <script type="text/javascript" src="build/context.js"></script>
-    <script type="text/javascript" src="build/buffer.js"></script>
-
-    <script type="text/javascript" charset="utf-8">
-      // init
-      require('mocha');
-      mocha.setup('bdd');
-      window.assert = require('assert')
-
-      // tests
-      require('audex/test/buffer.js');
-      require('audex/test/context.js');
-      require('audex/test/encoder.js');
-
-      // run
-      mocha.run();
-    </script>
+    <script type="text/javascript" src="build/test.js"></script>
+    <script type="text/javascript" charset="utf-8">require('audex/test/index.js')</script>
   </body>
 </html>

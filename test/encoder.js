@@ -20,9 +20,10 @@ describe("Encoder(buffer)", function () {
     ctx.decodeAudioData(res, function (buffer) {
       // left and right channels
       var channels = [buffer.getChannelData(0), buffer.getChannelData(1)];
+      console.log(buffer)
 
       encoder = new Encoder(channels, {
-        sampleRate: buffer.sampleRate,
+        sampleRate: buffer.smpleRate,
         duration: buffer.duration
       });
 
@@ -30,10 +31,11 @@ describe("Encoder(buffer)", function () {
       .type('audio/mp3')
       .mode(Encoder.MODE_JOINT_STEREO)
       .splice(0, 5000)
+      //.on('progress', console.log.bind(console, 'progress'))
       .encode(function (err, blob) {
         if (err) { console.error(err); }
         console.log(blob)
-        window.open(URL.createObjectURL(blob));
+        //window.open(URL.createObjectURL(blob));
       });
     });
   };

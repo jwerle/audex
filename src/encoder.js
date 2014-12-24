@@ -6,6 +6,19 @@
  */
 
 var lame = require('libmp3lame-js')
+  , Emitter = require('emitter')
+
+/**
+ * `lame' api
+ */
+
+lame.set_scale = lame.Module.cwrap('lame_set_scale', 'number', ['number', 'number']);
+
+var SAMPLES_PER_FRAME = 1152;
+var DEFAULT_SAMPLE_RATE = 44100;
+var DEFAULT_MIME_TYPE = 'audio/mp3';
+var DEFAULT_BIT_RATE = 128;
+var DEFAULT_DURATION = 30;
 
 // see: http://stackoverflow.com/a/22677317 (thank you)
 function decibels (buffer) {
@@ -23,12 +36,6 @@ function decibels (buffer) {
   db = 20 * (Math.log(rms) / Math.LN10);
   return db;
 }
-
-var SAMPLES_PER_FRAME = 1152;
-var DEFAULT_SAMPLE_RATE = 44100;
-var DEFAULT_MIME_TYPE = 'audio/mp3';
-var DEFAULT_BIT_RATE = 128;
-var DEFAULT_DURATION = 30;
 
 /**
  * `Encoder' constructor
@@ -64,6 +71,9 @@ function Encoder (buffers, opts) {
 
   this.opts.time.end = opts.duration || DEFAULT_DURATION;
 }
+
+// inherit from `Emitter'
+Emitter(Encoder.prototype);
 
 /**
  * Encoder modes
@@ -201,6 +211,25 @@ Encoder.prototype.splice = function (start, end) {
 };
 
 /**
+ * Sets or gets codec scale
+ *
+ * @api public
+ * @param {Number} scale
+ */
+
+Encoder.prototype.scale = function (scale) {
+  if (null === scale) {
+    delete this.opts.scale;
+  } else if ('number' == typeof scale) {
+    this.opts.scale = scale;
+  } else if ('undefined' == typeof scale) {
+    return this.opts.scale;
+  }
+
+  return this;
+};
+
+/**
  * Encodes buffer and returns `Blob'
  * with a provided mime type
  *
@@ -219,6 +248,7 @@ Encoder.prototype.encode = function (fn) {
   var codec = this.codec;
   var start = this.opts.time.start;
   var type = this.opts.type;
+  var self = this;
   var rate = this.opts.samplerate.in * 1000; // in milliseconds
   var stop = this.opts.time.end * rate;
   var len = buffers[0].length;
@@ -233,6 +263,10 @@ Encoder.prototype.encode = function (fn) {
   lame.set_num_channels(codec, this.channels());
   lame.set_in_samplerate(codec, this.samplerate('in'));
   lame.set_out_samplerate(codec, this.samplerate('out'));
+
+  if ('number' == typeof this.opts.scale) {
+    lame.set_scale(codec, this.opts.scale);
+  }
 
   // init lame encoder for codec
   lame.init_params(codec);
@@ -272,29 +306,65 @@ Encoder.prototype.encode = function (fn) {
       }
     }
 
-    // construct left/right channels
+    self.emit('spliced', spliced);
+
+    // calculate channel size from spliced length
+    // rounding to the nearest multiple of `4' to
+    // ensure the proper size when creating left and
+    // right 32 bit signed float buffers which is
+    // achieved with `n + m - (n % m)' where `n'
+    // is the number to round and `m' is the
+    // multiple to round to.
+    //  here we assign: `n = size' and `m = 4'
     size = spliced.length + 4 - (spliced.length % 4);
+
+    // construct left/right channels from
+    // calculated size
     left = new Float32Array(size);
     right = new Float32Array(size);
 
+    // copy buffer data
     left.set(spliced.map(function (a) { return a[0] }));
     right.set(spliced.map(function (a) { return a[1] || a[0]; }));
+
+    // empty spliced data. this may or may not have
+    // a positive affect on performance
+    spliced.splice(1, spliced.length);
 
     len = SAMPLES_PER_FRAME * (channels * channels);
     max = len * (end / 100);
 
     // for each frame sample ram
-    for (i = 0; i <= max; i += len) {
+    for (i = 0; i < max; i += len) {
       j = i + len < left.length - 1 ? i + len : right.length - 1;
       chunks.push(
         lame.encode_buffer_ieee_float(
           codec,
           left.subarray(i, j),
           right.subarray(i, j)));
+
+      // inform consumer of chunks and encode progress
+      self.emit('chunk', chunks[chunks.length -1]);
+      self.emit('progress', {
+        percent: (i / max) * 100,
+        offset: (j - i),
+        size: chunks.reduce(function (s, c) { return s + c.size; }, 0)
+      });
     }
 
     // flush
     chunks.push(lame.encode_flush(codec));
+    self.emit('progress', {
+      percent: 100,
+      offset: chunks.reduce(function (s, c) { return s + c.size; }, 0),
+      chunks: chunks,
+      size: chunks.reduce(function (s, c) { return s + c.size; }, 0)
+    });
+
+    self.emit('complete', {
+      chunks: chunks,
+      size: chunks.reduce(function (s, c) { return s + c.size; }, 0)
+    });
 
     // map and filter chunks
     chunks = (chunks

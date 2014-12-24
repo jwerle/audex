@@ -9,6 +9,9 @@
   <body>
     <div id="mocha"></div>
     <script type="text/javascript" src="build/test.js"></script>
-    <script type="text/javascript" charset="utf-8">require('audex/test/index.js')</script>
+    <script type="text/javascript" charset="utf-8">
+      window.GlobalAudioContext = window.ctx = new AudioContext();
+      require('audex/test/index.js');
+    </script>
   </body>
 </html>

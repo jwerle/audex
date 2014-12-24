@@ -282,6 +282,7 @@ Encoder.prototype.encode = function (fn) {
     var size = 0;
     var buf = null;
     var max = 0;
+    var err = null;
     var i = start > 0 ? start * rate : 0;
     var j = 0;
     var k = 0;
@@ -331,6 +332,7 @@ Encoder.prototype.encode = function (fn) {
     // a positive affect on performance
     spliced.splice(1, spliced.length);
 
+    // calculate offset length from
     len = SAMPLES_PER_FRAME * (channels * channels);
     max = len * (end / 100);
 
@@ -343,27 +345,38 @@ Encoder.prototype.encode = function (fn) {
           left.subarray(i, j),
           right.subarray(i, j)));
 
+      if (null == chunks[chunks.length - 1]) {
+        lame.encode_flush(codec);
+        err = new Error("Failed to encode chunk");
+        fn(err);
+        self.emit('error', err);
+        return this;
+      }
+
       // inform consumer of chunks and encode progress
-      self.emit('chunk', chunks[chunks.length -1]);
+      self.emit('chunk', chunks[chunks.length -1].data);
       self.emit('progress', {
         percent: (i / max) * 100,
         offset: (j - i),
+        chunks: chunks,
         size: chunks.reduce(function (s, c) { return s + c.size; }, 0)
       });
     }
+
+    size = chunks.reduce(function (s, c) { return s + c.size; }, 0);
 
     // flush
     chunks.push(lame.encode_flush(codec));
     self.emit('progress', {
       percent: 100,
-      offset: chunks.reduce(function (s, c) { return s + c.size; }, 0),
+      offset: size,
       chunks: chunks,
-      size: chunks.reduce(function (s, c) { return s + c.size; }, 0)
+      size: size
     });
 
     self.emit('complete', {
       chunks: chunks,
-      size: chunks.reduce(function (s, c) { return s + c.size; }, 0)
+      size: size
     });
 
     // map and filter chunks

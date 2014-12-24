@@ -78,16 +78,6 @@ describe("Encoder(buffer)", function () {
     });
   });
 
-  describe("#type(type)", function () {
-    it("should set the encoder outout type", function () {
-      var enc = createEncoder();
-      assert(enc, 'encoder');
-      assert(enc.type('audio/ogg'), 'encoder.type("audio/ogg")');
-      assert('audio/ogg' == enc.opts.type, 'encoder.opts.type');
-      assert('audio/ogg' == enc.type(), 'encoder.type()');
-    });
-  });
-
   describe("#samplerate(type, rate)", function () {
     it("should set the encoder I/O sample rate", function () {
       var enc = createEncoder();
@@ -146,7 +136,6 @@ describe("Encoder(buffer)", function () {
 
     before(function () {
       enc = createEncoder();
-      assert(enc.type('audio/mp3'));
       assert(enc.mode(Encoder.MODE_JOINT_STEREO));
       assert(enc.splice(0, 1000));
     });
@@ -168,11 +157,11 @@ describe("Encoder(buffer)", function () {
       });
     });
 
-    it("should encode and emit a `Blob'", function (done) {
-      enc.encode(function (err, blob) {
+    it("should encode and emit a `Float32Array'", function (done) {
+      enc.encode(function (err, output) {
         assert(null == err, 'null == err');
         if (err) { console.error(err); }
-        assert(blob instanceof Blob, 'blob instanceof Blob');
+        assert(output instanceof Float32Array);
         done();
       });
     });

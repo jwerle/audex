@@ -16,7 +16,6 @@ lame.set_scale = lame.Module.cwrap('lame_set_scale', 'number', ['number', 'numbe
 
 var SAMPLES_PER_FRAME = 1152;
 var DEFAULT_SAMPLE_RATE = 44100;
-var DEFAULT_MIME_TYPE = 'audio/mp3';
 var DEFAULT_BIT_RATE = 128;
 var DEFAULT_DURATION = 30;
 
@@ -60,7 +59,6 @@ function Encoder (buffers, opts) {
   this.opts = {
     mode: Encoder.MODE_JOINT_STEREO,
     time: {start: 0, end: 0},
-    type: DEFAULT_MIME_TYPE,
     bitrate: opts.bitrate || DEFAULT_BIT_RATE,
     channels: buffers.length,
     samplerate: {
@@ -127,28 +125,11 @@ Encoder.prototype.channels = function (count) {
 };
 
 /**
- * Sets or gets an encoder type count
- *
- * @api public
- * @param {String} type- optional
- */
-
-Encoder.prototype.type = function (type) {
-  if (null == type) {
-    return this.opts.type;
-  } else {
-    this.opts.type = type;
-  }
-
-  return this;
-};
-
-/**
  * Sets or gets encoder in/out sample rate
  *
  * @api public
  * @param {String} type
- * @param {Number} rate
+ * @param {Number} rate - optional
  */
 
 Encoder.prototype.samplerate = function (type, rate) {
@@ -177,8 +158,7 @@ Encoder.prototype.samplerate = function (type, rate) {
  * Sets or gets encoder bit rate
  *
  * @api public
- * @param {String} type
- * @param {Number} rate
+ * @param {Number} rate - optional
  */
 
 Encoder.prototype.bitrate = function (rate) {
@@ -214,7 +194,7 @@ Encoder.prototype.splice = function (start, end) {
  * Sets or gets codec scale
  *
  * @api public
- * @param {Number} scale
+ * @param {Number} scale - optional
  */
 
 Encoder.prototype.scale = function (scale) {
@@ -230,8 +210,7 @@ Encoder.prototype.scale = function (scale) {
 };
 
 /**
- * Encodes buffer and returns `Blob'
- * with a provided mime type
+ * Encodes audio and provides a `Float32Array'
  *
  * @api public
  * @param {Function} fn
@@ -247,7 +226,6 @@ Encoder.prototype.encode = function (fn) {
   var buffers = this.buffers;
   var codec = this.codec;
   var start = this.opts.time.start;
-  var type = this.opts.type;
   var self = this;
   var rate = this.opts.samplerate.in * 1000; // in milliseconds
   var stop = this.opts.time.end * rate;
@@ -273,6 +251,7 @@ Encoder.prototype.encode = function (fn) {
 
   // defer
   setTimeout(function () {
+    var output = null;
     var chunks = [];
     var chans = [];
     var parts = null;
@@ -384,11 +363,13 @@ Encoder.prototype.encode = function (fn) {
               .filter(function (c) { return c.size; })
               .map(function (c) { return c.data; }));
 
-    // output blob
-    blob = new Blob(chunks, {type: type});
+    // output buffer
+    size = size + 4 - (size % 4); // nearest mutliple of `4'
+    output = new Float32Array(size);
+    output.set(chunks);
 
     /// callback
-    fn(null, blob);
+    fn(null, output);
   });
 
   return this;

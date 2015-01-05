@@ -227,13 +227,9 @@ Encoder.prototype.encode = function (fn) {
   var codec = this.codec;
   var start = this.opts.time.start;
   var self = this;
-  var rate = this.opts.samplerate.in * 1000; // in milliseconds
+  var rate = this.opts.samplerate.in; // in milliseconds
   var stop = this.opts.time.end * rate;
-  var len = buffers[0].length;
   var end = this.opts.time.end;
-
-  // samples to encode
-  samples = rate * (end - start);
 
   // init lame options
   lame.set_mode(codec, this.mode());
@@ -251,7 +247,6 @@ Encoder.prototype.encode = function (fn) {
 
   // defer
   setTimeout(function () {
-    var output = null;
     var chunks = [];
     var chans = [];
     var parts = null;
@@ -262,7 +257,8 @@ Encoder.prototype.encode = function (fn) {
     var buf = null;
     var max = 0;
     var err = null;
-    var i = start > 0 ? start * rate : 0;
+    var len = buffers[0].length;
+    var i = start > 0 ? (start * rate) / 1000 : 0;
     var j = 0;
     var k = 0;
 
@@ -285,6 +281,11 @@ Encoder.prototype.encode = function (fn) {
         spliced.push(chans);
       }
     }
+
+    console.log('')
+    console.log('')
+    console.log('')
+    console.log('')
 
     self.emit('spliced', spliced);
 
@@ -363,13 +364,8 @@ Encoder.prototype.encode = function (fn) {
               .filter(function (c) { return c.size; })
               .map(function (c) { return c.data; }));
 
-    // output buffer
-    size = size + 4 - (size % 4); // nearest mutliple of `4'
-    output = new Float32Array(size);
-    output.set(chunks);
-
     /// callback
-    fn(null, output);
+    fn(null, chunks);
   });
 
   return this;

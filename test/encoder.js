@@ -142,7 +142,7 @@ describe("Encoder(buffer)", function () {
     before(function () {
       enc = createEncoder();
       assert(enc.mode(Encoder.MODE_JOINT_STEREO));
-      assert(enc.splice(1000, 2800));
+      assert(enc.splice(0, 1));
     });
 
     it("should emit a 'chunk' event", function () {
@@ -172,52 +172,4 @@ describe("Encoder(buffer)", function () {
       });
     });
   });
-
-  describe('fun...', function () {
-    var bufs = [];
-    var rate = GlobalAudioContext.sampleRate;
-    this.timeout(Infinity);
-    it("should be yay", function (done) {
-      createEncoder()
-      .scale(0.5)
-      .splice(0, 1000)
-      .encode(function (err, output) {
-        bufs.push(output);
-        var size = 2 * output.reduce(function (s, c) {
-          return s + c.length;
-        }, 0);
-        console.log('size', size, (size/rate) * 1000);
-        createEncoder()
-        .scale(0.3)
-        .splice((size/rate) * 1000|0, 2000)
-        .encode(function (err, output) {
-          bufs.push(output);
-          var size = 2 * output.reduce(function (s, c) {
-            return s + c.length;
-          }, 0);
-
-          createEncoder()
-          .scale(0.8)
-          .splice((size/rate) * 1000|0, 3000)
-          .encode(function (err, output) {
-            done();
-            bufs.push(output);
-            console.log('bufs', bufs);
-            var blob = new Blob(
-              bufs.reduce(function (a, c) { return a.concat(c); }, []),
-              {type: 'audio/mp3'});
-            console.log('blob', blob)
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = 'foo';
-            name = a.download.toString()
-            a.dispatchEvent(new Event('click'));
-            window.open(url);
-          });
-        });
-      });
-    });
-  });
-
 });

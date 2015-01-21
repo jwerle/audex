@@ -16,6 +16,7 @@ lame.set_scale = lame.Module.cwrap('lame_set_scale', 'number', ['number', 'numbe
 
 var SAMPLES_PER_FRAME = 1152;
 var DEFAULT_SAMPLE_RATE = 44100;
+var DEFAULT_MIME_TYPE = 'audio/mp3';
 var DEFAULT_BIT_RATE = 128;
 var DEFAULT_DURATION = 30;
 
@@ -57,7 +58,7 @@ function Encoder (buffers, opts) {
   this.buffers = buffers;
   this.codec = lame.init();
   this.opts = {
-    mode: Encoder.MODE_JOINT_STEREO,
+    mode: Encoder.MODE_STEREO,
     time: {start: 0, end: 0},
     bitrate: opts.bitrate || DEFAULT_BIT_RATE,
     channels: buffers.length,
@@ -129,7 +130,7 @@ Encoder.prototype.channels = function (count) {
  *
  * @api public
  * @param {String} type
- * @param {Number} rate - optional
+ * @param {Number} rate
  */
 
 Encoder.prototype.samplerate = function (type, rate) {
@@ -158,7 +159,8 @@ Encoder.prototype.samplerate = function (type, rate) {
  * Sets or gets encoder bit rate
  *
  * @api public
- * @param {Number} rate - optional
+ * @param {String} type
+ * @param {Number} rate
  */
 
 Encoder.prototype.bitrate = function (rate) {
@@ -194,7 +196,7 @@ Encoder.prototype.splice = function (start, end) {
  * Sets or gets codec scale
  *
  * @api public
- * @param {Number} scale - optional
+ * @param {Number} scale
  */
 
 Encoder.prototype.scale = function (scale) {
@@ -210,7 +212,8 @@ Encoder.prototype.scale = function (scale) {
 };
 
 /**
- * Encodes audio and provides a `Float32Array'
+ * Encodes buffer and returns `Blob'
+ * with a provided mime type
  *
  * @api public
  * @param {Function} fn
@@ -229,7 +232,11 @@ Encoder.prototype.encode = function (fn) {
   var self = this;
   var rate = this.opts.samplerate.in;
   var stop = this.opts.time.end * rate;
+  var len = buffers[0].length;
   var end = this.opts.time.end;
+
+  // samples to encode
+  samples = rate * (end - start);
 
   // init lame options
   lame.set_mode(codec, this.mode());
@@ -256,8 +263,7 @@ Encoder.prototype.encode = function (fn) {
     var buf = null;
     var max = 0;
     var err = null;
-    var len = buffers[0].length;
-    var i = start > 0 ? (start * rate) / 1000 : 0;
+    var i = start > 0 ? start * rate : 0;
     var j = 0;
     var k = 0;
 
@@ -270,11 +276,6 @@ Encoder.prototype.encode = function (fn) {
         spliced.push(chans);
       }
     }
-
-    console.log('')
-    console.log('')
-    console.log('')
-    console.log('')
 
     self.emit('spliced', spliced);
 

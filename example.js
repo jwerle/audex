@@ -3,16 +3,20 @@ var encoder = null;
 var output = [];
 
 LoadAudioBuffer('/test/track-1.mp3', function (err, buffer) {
-  encoder = audex.createEncoder(
-    [buffer.getChannelData(0), buffer.getChannelData(1)], {
-    sampleRate: buffer.sampleRate,
-    duration: buffer.duration
-  });
+  function createEncoder () {
+    return audex.createEncoder(
+      [buffer.getChannelData(0), buffer.getChannelData(1)], {
+      sampleRate: buffer.sampleRate,
+      duration: buffer.duration
+    }).on('progress', console.log.bind(console)).scale(1);
+  }
 
-  encoder.on('progress', console.log.bind(console));
+  var encoder = createEncoder();
 
-  CrossfadeAudio(encoder, 0, 4, 0.1, 1, function (err, out) {
-    FinalizeOutput(out);
+  CrossfadeAudio(encoder, 0, 4, 0, 2, function (err, a) {
+    SpliceAudio(encoder, 4, 10, function (err, b) {
+      FinalizeOutput(a.concat(b));
+    })
   });
 
   /*SpliceAudio(encoder, 0, 2, function (err, out) {
@@ -78,13 +82,14 @@ function ViewOutputBlob (blob) {
 
 function CrossfadeAudio (encoder, start, end, s, e, fn) {
   var buffers = [];
-  var d = (e - s) * 10;
+  var d = ((e - s) / (end - start));
 
+  console.log(d)
+  var scale = s;
   void function work (i) {
-    var scale = s + (i/10);
-    scale = scale > 1 ? 1: scale;
-    console.log("work=(%d) scale=(%f) d=(%d)", i, scale, d);
-    if (++i >= d) {
+    scale = scale > 1 ? 1 : scale + d;
+    console.log("work=(%d) scale=(%f) d=(%f)", i, scale, d);
+    if (++i >= end) {
       fn(null, buffers);
       return;
     }

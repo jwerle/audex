@@ -148,7 +148,7 @@ describe("Encoder(buffer)", function () {
       enc = createEncoder();
       assert(enc.type('audio/mp3'));
       assert(enc.mode(Encoder.MODE_JOINT_STEREO));
-      assert(enc.splice(0, 1000));
+      assert(enc.splice(0, 1));
     });
 
     it("should emit a 'chunk' event", function () {
@@ -177,5 +177,4 @@ describe("Encoder(buffer)", function () {
       });
     });
   });
-
 });

@@ -31,7 +31,7 @@ test:
 	$(C8) build --dev -o test/build -n test
 
 test-and-serve: test
-	$(SERVE) -p 8888 test
+	$(SERVE) -p 8888
 
 .PHONY: $(TESTS)
 $(TESTS): test

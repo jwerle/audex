@@ -249,7 +249,7 @@ Encoder.prototype.encode = function (fn) {
   var start = this.opts.time.start;
   var type = this.opts.type;
   var self = this;
-  var rate = this.opts.samplerate.in * 1000; // in milliseconds
+  var rate = this.opts.samplerate.in;
   var stop = this.opts.time.end * rate;
   var len = buffers[0].length;
   var end = this.opts.time.end;
@@ -272,7 +272,6 @@ Encoder.prototype.encode = function (fn) {
   lame.init_params(codec);
 
   // defer
-  setTimeout(function () {
     var chunks = [];
     var chans = [];
     var parts = null;
@@ -287,22 +286,12 @@ Encoder.prototype.encode = function (fn) {
     var j = 0;
     var k = 0;
 
-    // splice for each chunk incrementing at
-    // sample rate in milliseconds and stopping
-    // at splice stop in milliseconds
     for (; i < stop; i += rate) {
-      // for each sample in chunk within rate
-      // and current offset range (j + i) so
-      // sample index is less than buffer length
       for (j = 0; j < rate && j + i < len; ++j) {
         chans = [];
-        // for each channel (k) read current
-        // sample data from channel buffer (i +j)
         for (k = 0; k < channels; ++k) {
           chans.push(buffers[k][i + j]);
         }
-
-        // store read channel data
         spliced.push(chans);
       }
     }
@@ -334,23 +323,30 @@ Encoder.prototype.encode = function (fn) {
 
     // calculate offset length from
     len = SAMPLES_PER_FRAME * (channels * channels);
-    max = len * (end / 100);
+    max = len * rate;
+
+    var enc = null;
 
     // for each frame sample ram
     for (i = 0; i < max; i += len) {
-      j = i + len < left.length - 1 ? i + len : right.length - 1;
-      chunks.push(
-        lame.encode_buffer_ieee_float(
-          codec,
-          left.subarray(i, j),
-          right.subarray(i, j)));
+      j = i + len < left.length - 1 ? i + len : left.length - 1;
+      enc = lame.encode_buffer_ieee_float(
+        codec,
+        left.subarray(i, j),
+        right.subarray(i, j));
 
-      if (null == chunks[chunks.length - 1]) {
-        lame.encode_flush(codec);
+      if (null == enc) {
+        lame.encode_flush_nogap(codec);
         err = new Error("Failed to encode chunk");
         fn(err);
         self.emit('error', err);
         return this;
+      }
+
+      chunks.push(enc);
+
+      if (0 == enc.size) {
+        break;
       }
 
       // inform consumer of chunks and encode progress
@@ -366,15 +362,11 @@ Encoder.prototype.encode = function (fn) {
     size = chunks.reduce(function (s, c) { return s + c.size; }, 0);
 
     // flush
-    chunks.push(lame.encode_flush(codec));
+    lame.encode_flush_nogap(codec);
+
     self.emit('progress', {
       percent: 100,
       offset: size,
-      chunks: chunks,
-      size: size
-    });
-
-    self.emit('complete', {
       chunks: chunks,
       size: size
     });
@@ -384,12 +376,13 @@ Encoder.prototype.encode = function (fn) {
               .filter(function (c) { return c.size; })
               .map(function (c) { return c.data; }));
 
-    // output blob
-    blob = new Blob(chunks, {type: type});
+    self.emit('complete', {
+      chunks: chunks,
+      size: size
+    });
 
     /// callback
-    fn(null, blob);
-  });
+    fn(null, chunks);
 
   return this;
 };

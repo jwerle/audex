@@ -8,14 +8,17 @@ LoadAudioBuffer('/test/track-1.mp3', function (err, buffer) {
       [buffer.getChannelData(0), buffer.getChannelData(1)], {
       sampleRate: buffer.sampleRate,
       duration: buffer.duration
-    }).on('progress', console.log.bind(console)).scale(1);
+    })
+    //.on('progress', console.log.bind(console)).scale(1);
   }
 
   var encoder = createEncoder();
 
-  CrossfadeAudio(encoder, 0, 4, 0, 2, function (err, a) {
-    SpliceAudio(encoder, 4, 10, function (err, b) {
-      FinalizeOutput(a.concat(b));
+  CrossfadeAudio(encoder, 0, 5, 0, 1, function (err, a) {
+    SpliceAudio(encoder, 5, 10, function (err, b) {
+      CrossfadeAudio(encoder, 10, 30, 1, .1, function (err, c) {
+        FinalizeOutput(a.concat(b).concat(c));
+      })
     })
   });
 
@@ -47,6 +50,7 @@ function SpliceAudio (enc, start, stop, fn) {
 }
 
 function SpliceAudioWithScale (enc, start, stop, scale, fn) {
+  //console.log("splice start=(%d) stop=(%d) scale=(%f)", start, stop, scale);
   enc.splice(start, stop).scale(scale).encode(fn);
 }
 
@@ -82,24 +86,26 @@ function ViewOutputBlob (blob) {
 
 function CrossfadeAudio (encoder, start, end, s, e, fn) {
   var buffers = [];
-  var d = ((e - s) / (end - start));
-
-  console.log(d)
   var scale = s;
+  var stop = (end - start);
+  var d = (e - s) / (end - start);
   void function work (i) {
     scale = scale > 1 ? 1 : scale + d;
+    scale = scale < 0 ? 0 : scale;
     console.log("work=(%d) scale=(%f) d=(%f)", i, scale, d);
-    if (++i >= end) {
+
+    if (i + 1 > stop) {
       fn(null, buffers);
       return;
     }
+
     SpliceAudioWithScale(
       encoder,
       start + i, start + i + 1, scale,
       function (err, out) {
         if (err) { return fn(err); }
         buffers.push(out);
-        work(i);
+        work(++i);
       });
   }(0);
 }

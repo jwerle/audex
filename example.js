@@ -1,4 +1,3 @@
-var audex = require('audex');
 var encoder = null;
 var output = [];
 

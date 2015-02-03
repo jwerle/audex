@@ -15,6 +15,16 @@ all: dependencies build
 build:
 	$(C8) build
 
+.PHONY: dist
+dist: build
+	rm -rf $(@)
+	mkdir $(@)
+	touch $(@)/audex.js
+	echo '!function (global) {' >> $(@)/audex.js
+	cat build/*.js >> $(@)/audex.js
+	echo 'global.audex = require("audex");' >> $(@)/audex.js
+	echo '}(this);' >> $(@)/audex.js
+
 deps: dependencies
 dependencies: node_modules components
 

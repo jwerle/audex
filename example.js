@@ -18,6 +18,7 @@ LoadAudioBuffer('/test/track-1.mp3', function (err, buffer) {
     SpliceAudio(encoder, 5, 10, function (err, b) {
       CrossfadeAudio(encoder, 10, 30, 1, .1, function (err, c) {
         FinalizeOutput(a.concat(b).concat(c));
+        //FinalizeOutput(b.concat(c));
       })
     })
   });
